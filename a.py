@@ -1,5 +1,7 @@
 import multiprocessing as mp
 import subprocess
+import srt
+import pysubs2
 
 
 def run(cmd):
@@ -36,5 +38,48 @@ def main():
         j.wait()
 
 
+def srt_to_ass(srt_file_path, ass_file_path):
+    # Read the SRT file
+    with open(srt_file_path, 'r', encoding='utf-8') as srt_file:
+        srt_content = srt_file.read()
+
+    # Parse the SRT content
+    subtitles = list(srt.parse(srt_content))
+
+    # Create a new ASS file
+    subs = pysubs2.SSAFile()
+    subs.info["title"] = "Converted Subtitle"
+    subs.info["wrap_style"] = "0"
+    subs.info["play_depth"] = "0"
+
+    # Set default style
+    subs.styles["Default"] = pysubs2.SSAStyle(
+        fontname="Arial",
+        fontsize=20,
+        primarycolor=pysubs2.Color(255, 255, 255),
+        backcolor=pysubs2.Color(0, 0, 0, 128),
+        bold=False,
+        italic=False,
+        underline=False,
+        alignment=pysubs2.Alignment.BOTTOM_CENTER,
+        marginl=10,
+        marginr=10,
+        marginv=10,
+    )
+
+    # Convert SRT to ASS
+    for subtitle in subtitles:
+        subs.append(pysubs2.SSAEvent(
+            start=int(subtitle.start.total_seconds() * 1000),
+            end=int(subtitle.end.total_seconds() * 1000),
+            text=subtitle.content.replace('\n', '\\N')
+        ))
+
+    # Save the ASS file
+    subs.save(ass_file_path)
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    srt_to_ass("speech_text/assets/bye/srt/medium_bye_short.srt",
+               "speech_text/assets/bye/srt/ass_file.ass")

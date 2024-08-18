@@ -53,7 +53,6 @@ def gen_ffmpeg_cmd(vid_title: str, model: str, text: str, font: str = "Tahoma", 
         return [cut_process]
     else:
         complete_process = f"""ffmpeg -i speech_text/assets/{vid_title}/{vid_title}.mp4 -vf "crop=ih*9/16:ih,scale=1080:1920,subtitles=speech_text/assets/{vid_title}/srt/{model}_{vid_title}_{text}.srt:force_style='Alignment=10,FontName={font},FontSize={fontSize},Outline=0,Shadow=0,Bold=1'" -c:a copy speech_text/assets/{vid_title}/{model}/{text}/{text}_{vid_title}.mp4"""
-        complete_process = f"""ffmpeg -i speech_text/assets/{vid_title}/{vid_title}.mp4 -vf "crop=ih*9/16:ih,scale=1080:1920,pix_fmts=yuv420p|monow|rgb24,color_spaces=bt709|bt470bg|bt2020nc,color_spaces=tv|pc,subtitles=speech_text/assets/{vid_title}/srt/{model}_{vid_title}_{text}.srt:force_style='Alignment=10,FontName={font},FontSize={fontSize},Outline=0,Shadow=0,Bold=1'" -c:a copy speech_text/assets/{vid_title}/{model}/{text}/{text}_{vid_title}.mp4"""
         return [complete_process]
 
 

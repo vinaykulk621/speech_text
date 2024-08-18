@@ -8,7 +8,7 @@ class DownloadVideo():
 
     def __init__(self) -> None:
         self.vid_title = input(
-            "What do you want to save this project as:\t").strip()
+            "What do you want to save this project as:\t").strip().replace("\n", "")
 
     def get_vid_info(self) -> None:
         """
@@ -18,11 +18,11 @@ class DownloadVideo():
         """
         with open("speech_text/assets/links.csv", 'r')as f:
             reader = csv.reader(f)
-        for row in reader:
-            if row[0] == self.vid_title:
-                self.vid_url = row[1]
-                self.aud_url = row[1]
-                return
+            for row in reader:
+                if row[0].strip() == self.vid_title:
+                    self.vid_url = row[1]
+                    self.aud_url = row[1]
+                    return
         self.vid_url = input("Video link:\t").strip()
         self.aud_url = input("Audio link:\t").strip()
 
@@ -68,6 +68,10 @@ class DownloadVideo():
         file_path = self.get_filepath()
         subprocess.run(
             f"""yt-dlp -f "bestvideo+bestaudio" -o "{file_path}/{self.vid_title}.%(ext)s" {self.vid_url} && yt-dlp -f "bestaudio" -o "{file_path}/{self.vid_title}.%(ext)s" --extract-audio --audio-format mp3 {self.aud_url}""", shell=True)
+
+        # get the subtitle/captions file also
+        subprocess.run(
+            f"""yt-dlp -f "bestvideo+bestaudio" -o "{file_path}/{self.vid_title}.%(ext)s" --write-subs --sub-lang en --convert-subs srt {self.vid_url} && yt-dlp -f "bestaudio" -o "{file_path}/{self.vid_title}.%(ext)s" --extract-audio --audio-format mp3 {self.aud_url}""", shell=True)
 
 
 if __name__ == '__main__':

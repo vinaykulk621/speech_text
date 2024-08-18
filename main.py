@@ -1,5 +1,5 @@
-from email.policy import default
 import json
+import logging
 import subprocess
 import time
 import multiprocessing as mp
@@ -12,6 +12,20 @@ class Main():
 
     def __init__(self) -> None:
         self.dv = DownloadVideo()
+        self.get_short_captions = input(
+            "do you want to extract short captions? [default value No] (y/n)?\t").strip()
+        match self.get_short_captions:
+            case 'y':
+                self.get_short_captions = True
+            case 'Y':
+                self.get_short_captions = True
+            case 'n':
+                self.get_short_captions = False
+            case 'N':
+                self.get_short_captions = False
+            case _:
+                logging.info("Invalid choice\n set to default value No")
+                self.get_short_captions = False
 
     def download_vd(self) -> None:
         """download the youtube video and audio only if needed"""
@@ -84,13 +98,14 @@ class Main():
         write_long_captions(self.dv.get_filepath(),
                             self.dv.vid_title, medium_transcript, "medium")
 
-        # write short captions into each separate srt file
-        write_short_captions(self.dv.get_filepath(),
-                             self.dv.vid_title, tiny_transcript, "tiny")
-        write_short_captions(self.dv.get_filepath(),
-                             self.dv.vid_title, small_transcript, "small")
-        write_short_captions(self.dv.get_filepath(),
-                             self.dv.vid_title, medium_transcript, "medium")
+        if self.get_short_captions:
+            # write short captions into each separate srt file
+            write_short_captions(self.dv.get_filepath(),
+                                 self.dv.vid_title, tiny_transcript, "tiny")
+            write_short_captions(self.dv.get_filepath(),
+                                 self.dv.vid_title, small_transcript, "small")
+            write_short_captions(self.dv.get_filepath(),
+                                 self.dv.vid_title, medium_transcript, "medium")
 
     def run(self, cmd) -> None:
         """Just run the damn command already!!"""
@@ -103,38 +118,53 @@ class Main():
         # https://stackoverflow.com/a/952946/17724990
 
         # caption burn commands
-        tiny_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title,  "tiny", "long"),
-                        gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "short")], [])
-        small_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "small", "long"),
-                          gen_ffmpeg_cmd(self.dv.vid_title, "small", "short")], [])
-        medium_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "medium", "long"),
-                           gen_ffmpeg_cmd(self.dv.vid_title, "medium", "short")], [])
+        # currently i fuckin hate this
+        # but i don't have enough energy to change the program structure now
+        # will doo it later
+        # TODO: Fix this garbage ass code man
+        if self.get_short_captions:
+            tiny_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title,  "tiny", "long"),
+                             gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "short")], [])
+            small_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "small", "long"),
+                              gen_ffmpeg_cmd(self.dv.vid_title, "small", "short")], [])
+            medium_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "medium", "long"),
+                               gen_ffmpeg_cmd(self.dv.vid_title, "medium", "short")], [])
 
-        # cut video into 30s segment commands
-        tiny_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "long", cut_cmd=True),
-                             gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "short", cut_cmd=True)], [])
-        small_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "small", "long", cut_cmd=True),
-                              gen_ffmpeg_cmd(self.dv.vid_title, "small", "short", cut_cmd=True)], [])
-        medium_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "medium", "long", cut_cmd=True),
-                               gen_ffmpeg_cmd(self.dv.vid_title, "medium", "short", cut_cmd=True)], [])
+            # cut video into 30s segment commands
+            tiny_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "long", cut_cmd=True),
+                                gen_ffmpeg_cmd(self.dv.vid_title, "tiny", "short", cut_cmd=True)], [])
+            small_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "small", "long", cut_cmd=True),
+                                  gen_ffmpeg_cmd(self.dv.vid_title, "small", "short", cut_cmd=True)], [])
+            medium_cut_cmds = sum([gen_ffmpeg_cmd(self.dv.vid_title, "medium", "long", cut_cmd=True),
+                                   gen_ffmpeg_cmd(self.dv.vid_title, "medium", "short", cut_cmd=True)], [])
+        else:
+            tiny_cmds = gen_ffmpeg_cmd(self.dv.vid_title,  "tiny", "long")
+            small_cmds = gen_ffmpeg_cmd(self.dv.vid_title, "small", "long")
+            medium_cmds = gen_ffmpeg_cmd(self.dv.vid_title, "medium", "long")
 
-        models = [tiny_cmds,
-                  small_cmds,
-                  medium_cmds,
-                  tiny_cut_cmds,
-                  small_cut_cmds,
-                  medium_cut_cmds]
+            # cut video into 30s segment commands
+            tiny_cut_cmds = gen_ffmpeg_cmd(
+                self.dv.vid_title, "tiny", "long", cut_cmd=True)
+            small_cut_cmds = gen_ffmpeg_cmd(
+                self.dv.vid_title, "small", "long", cut_cmd=True)
+            medium_cut_cmds = gen_ffmpeg_cmd(
+                self.dv.vid_title, "medium", "long", cut_cmd=True)
 
-        for model in models:
+        full_cmds = [tiny_cmds, small_cmds, medium_cmds]
+        cut_cmds = [tiny_cut_cmds, small_cut_cmds, medium_cut_cmds]
+
+        for cmd in full_cmds:
             with mp.Pool(4)as pool:
-                pool.map(self.run, model)
+                pool.map(self.run, cmd)
+        for cmd in cut_cmds:
+            with mp.Pool(4)as pool:
+                pool.map(self.run, cmd)
 
 
 if __name__ == '__main__':
     start = time.time()
     obj = Main()
     obj.download_vd()
-    print("video download complete")
     dir_setup(obj.dv.get_filepath())
     obj.main()
     obj.process_video()
