@@ -1,7 +1,0 @@
-file audio/line_1.wav
-file audio/line_2.wav
-file audio/line_3.wav
-file audio/line_4.wav
-file audio/line_5.wav
-file audio/line_6.wav
-file audio/line_7.wav

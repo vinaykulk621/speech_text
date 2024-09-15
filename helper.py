@@ -1,4 +1,6 @@
+import logging
 import os
+import shutil
 
 
 def format_timestamp(seconds: float, always_include_hours: bool = True, decimal_marker: str = ",") -> str:
@@ -58,14 +60,14 @@ def gen_ffmpeg_cmd(vid_title: str, model: str, text: str, font: str = "Tahoma", 
 
 def remove_srt_file(file: str) -> None:
     """remove existing srt file"""
-    print(f"removing {file}")
+    logging.info(f"removing {file}")
     if os.path.exists(file):
         os.remove(file)
 
 
 def write_short_captions(filepath: str, vid_title: str, transcript, model: str) -> None:
     """read each word in each segment"""
-    print(f"START writing short transciption of {model} model")
+    logging.info(f"START writing short transciption of {model} model")
     file = f'{filepath}/srt/{model}_{vid_title}_short.srt'
     remove_srt_file(file=file)
 
@@ -81,12 +83,12 @@ def write_short_captions(filepath: str, vid_title: str, transcript, model: str) 
                 sub = word["word"]
                 line = f"{cnt}\n{start} --> {end}\n{sub.strip()}\n"
                 f.write(f'{line}\n')
-    print(f"FINISH writing short transciption of {model} model")
+    logging.info(f"FINISH writing short transciption of {model} model")
 
 
 def write_long_captions(filepath: str, vid_title: str, transcript, model: str) -> None:
     """read each segment"""
-    print(f"START writing long transciption of {model} model")
+    logging.info(f"START writing long transciption of {model} model")
     file = f'{filepath}/srt/{model}_{vid_title}_long.srt'
     remove_srt_file(file)
 
@@ -99,45 +101,51 @@ def write_long_captions(filepath: str, vid_title: str, transcript, model: str) -
             sub = stamp['text']
             line = f"{id}\n{start} --> {end}\n{sub.strip()}\n"
             f.write(f'{line}\n')
-    print(f"FINISH writing long transciption of {model} model")
+    logging.info(f"FINISH writing long transciption of {model} model")
 
 
-def dir_setup(filepath: str) -> None:
+def dir_setup(filepath: str, long_dirs: bool = True) -> None:
     """setup directories to download srt, json and videos files"""
-    print("creating directories")
-    try:
-        # json and srt
-        os.makedirs(filepath+'\\json')
-        print("Directory -- json")
-        os.makedirs(filepath+'\\srt')
-        print("Directory -- srt")
+    logging.info("creating directories")
+    if long_dirs:
+        paths = {
+            # json and srt
+            "json": os.path.join(filepath + '\\json'),
+            "srt": os.path.join(filepath+'\\srt'),
 
-        # tiny
-        os.makedirs(os.path.join(filepath, 'tiny', 'short'))
-        print("Directory -- tiny/short")
-        os.makedirs(os.path.join(filepath, 'tiny', 'long'))
-        print("Directory -- tiny/long")
-        os.makedirs(os.path.join(filepath, 'tiny', 'broken'))
-        print("Directory -- tiny/broken")
+            # tiny
+            "tiny/short": os.path.join(filepath, 'tiny', 'short'),
+            "tiny/long": os.path.join(filepath, 'tiny', 'long'),
+            "tiny/broken": os.path.join(filepath, 'tiny', 'broken'),
 
-        # small
-        os.makedirs(os.path.join(filepath, 'small', 'short'))
-        print("Directory -- small/short")
-        os.makedirs(os.path.join(filepath, 'small', 'long'))
-        print("Directory -- small/long")
-        os.makedirs(os.path.join(
-            filepath, 'small', 'broken'))
-        print("Directory -- small/broken")
+            # small
+            "small/short": os.path.join(filepath, 'small', 'short'),
+            "small/long": os.path.join(filepath, 'small', 'long'),
+            "small/broken": os.path.join(filepath, 'small', 'broken'),
 
-        # medium
-        os.makedirs(os.path.join(
-            filepath, 'medium', 'short'))
-        print("Directory -- medium/short")
-        os.makedirs(os.path.join(filepath, 'medium', 'long'))
-        print("Directory -- medium/long")
-        os.makedirs(os.path.join(
-            filepath, 'medium', 'broken'))
-        print("Directory -- medium/broken")
-    except Exception as e:
-        print("could not create one of the necessary directory")
-        print(f"err:\t{e}")
+            # medium
+            "medium/short": os.path.join(filepath, 'medium', 'short'),
+            "medium/long": os.path.join(filepath, 'medium', 'long'),
+            "medium/broken": os.path.join(filepath, 'medium', 'broken'),
+        }
+        try:
+            for name, path in paths.items():
+                if os.path.exists(path):
+                    shutil.rmtree(path, ignore_errors=True)
+                os.makedirs(path)
+                logging.info(f"Directory -- {name}")
+        except Exception as e:
+            logging.error(
+                f"could not create one of the necessary directory, err: {e}")
+    else:
+        paths = {
+            # "original": os.path.join(filepath, 'original'),
+            "broken": os.path.join(filepath, 'broken')
+        }
+        try:
+            for name, path in paths.items():
+                os.makedirs(path, exist_ok=True)
+                print(f"directory -- {name}")
+        except Exception as e:
+            logging.error(
+                f"could not create one of the necessary directory, err: {e}")
